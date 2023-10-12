@@ -21,8 +21,8 @@ Retrieved from: http://en.literateprograms.org/Hash_table_(C)?oldid=19638
 #include "hashtbl.h"
 #include "settings.h"
 
-#include<string.h>
-#include<stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 static char *mystrdup(const char *s)
 {

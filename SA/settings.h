@@ -1,8 +1,3 @@
-/*
-  Dimitriadis Vasileios || 2116104
-  Kouskouras Taxiarchis || 2116162
-  Papageorgiou Grigoris || 2116025
- */
 #ifndef SETTINGS_H_INCLUDE_GUARD
 #define SETTINGS_H_INCLUDE_GUARD
 
