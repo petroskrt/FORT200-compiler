@@ -12,11 +12,12 @@
     extern FILE *yyin;
     extern char *yytext;
     extern int yylex();
-    void yyerror(const char *message, int type);   
+    void yyerror(const char *message);   
 
     HASHTBL *hashtbl; /* Define hashtable */
     int scope = 0; /* Define initial scope */
     int error_count = 0;
+    int type = 0;
 
     extern int lineno,line_init;
     extern char str_buf[256];
@@ -123,6 +124,7 @@
 %left T_LPAREN T_RPAREN T_LBRACK T_RBRACK T_DOT T_COLON 
 
 %nonassoc LOWER_THAN_ELSE
+%nonassoc T_ELSE
 
 %%
 
@@ -287,10 +289,10 @@ header:                                 type T_FUNCTION T_ID T_LPAREN formal_par
                                       | T_LIST T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN              { hashtbl_insert(hashtbl, $3, NULL, scope); } 
                                       | T_SUBROUTINE T_ID T_LPAREN formal_parameters T_RPAREN                   { hashtbl_insert(hashtbl, $2, NULL, scope); }
                                       | T_SUBROUTINE T_ID                                                       { hashtbl_insert(hashtbl, $2, NULL, scope); }
-                                      | T_LIST error T_ID T_LPAREN formal_parameters T_RPAREN                   { yyerror("Wrong use of header", 0); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
-                                      | error T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN               { yyerror("Wrong use of header", 0); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
-                                      | T_LIST T_FUNCTION error T_LPAREN formal_parameters T_RPAREN             { yyerror("Wrong use of header", 0); yyerrok;}    
-                                      | T_LIST T_FUNCTION T_ID error formal_parameters T_RPAREN                 { yyerror("Wrong use of header", 0); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
+                                      | T_LIST error T_ID T_LPAREN formal_parameters T_RPAREN                   { yyerror("Wrong use of header"); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
+                                      | error T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN               { yyerror("Wrong use of header"); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
+                                      | T_LIST T_FUNCTION error T_LPAREN formal_parameters T_RPAREN             { yyerror("Wrong use of header"); yyerrok;}    
+                                      | T_LIST T_FUNCTION T_ID error formal_parameters T_RPAREN                 { yyerror("Wrong use of header"); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
                                       ;
 
 formal_parameters:                      type vars T_COMMA formal_parameters
@@ -324,7 +326,7 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
-void yyerror(const char *message, int type)
+void yyerror(const char *message)
 {
     error_count++;
     
