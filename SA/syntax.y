@@ -1,4 +1,5 @@
 %{
+    #include "settings.h"
     #include <stdio.h>
     #include <stdlib.h>
     #include <unistd.h>
@@ -11,10 +12,11 @@
     extern FILE *yyin;
     extern char *yytext;
     extern int yylex();
-    extern void yyerror(char const *message, int type);   
+    void yyerror(const char *message, int type);   
 
     HASHTBL *hashtbl; /* Define hashtable */
     int scope = 0; /* Define initial scope */
+    int error_count = 0;
 
     extern int lineno,line_init;
     extern char str_buf[256];
@@ -28,7 +30,7 @@
 /*union to include the CONST types*/
 %union {
     int intval;
-    float floatval;
+    float realval;
     char charval;
     char* strval;
     _Bool boolval;
@@ -68,7 +70,7 @@
 
 
 %token <intval>   T_ICONST                   "int const"
-%token <floatval> T_RCONST                   "real const"
+%token <realval>  T_RCONST                   "real const"
 %token <strval>   T_CCONST                   "char const"     /* αν δεν δουλεψει το strval τοτε charval*/
 %token <boolval>  T_LCONST                   "logical const"
 %token <strval>   T_STRING                   "string const"
@@ -120,7 +122,7 @@
 %right T_NOTOP T_POWEROP
 %left T_LPAREN T_RPAREN T_LBRACK T_RBRACK T_DOT T_COLON 
 
-
+%nonassoc LOWER_THAN_ELSE
 
 %%
 
@@ -272,7 +274,7 @@ compound_statement:                     branch_statement
 branch_statement:                       T_IF T_LPAREN expression T_RPAREN T_THEN body tail
                                         ;
 tail:                                   T_ELSE body T_ENDIF                                                     { scope++; }
-                                      | T_ENDIF                                                                 { hashtbl_get(hashtbl, scope); scope--; }
+                                      | T_ENDIF  %prec   LOWER_THAN_ELSE                                                             { hashtbl_get(hashtbl, scope); scope--; }
                                       ; 
 loop_statement:                         T_DO T_ID T_ASSIGN iter_space body T_ENDDO                              { hashtbl_insert(hashtbl, $2, NULL, scope); scope++;}     { hashtbl_get(hashtbl, scope); scope--; }
                                         ;
@@ -320,4 +322,22 @@ int main(int argc, char *argv[]){
     fclose(yyin);
     hashtbl_destroy(hashtbl);
     return 0;
+}
+
+void yyerror(const char *message, int type)
+{
+    error_count++;
+    
+    if(type==0){
+		printf("-> ERROR at line %d caused by %s: %s\n", lineno, yytext, message);
+    }else if(type==1){
+		*str_buf_ptr = '\0'; // String or Comment Error. Cleanup old chars stored in buffer.
+		printf("-> ERROR at line %d near \"%s\": %s\n", lineno, str_buf, message);
+	}
+    type=0;
+    if(MAX_ERRORS <= 0) return;
+    if(error_count == MAX_ERRORS){
+        printf("Max errors (%d) detected\n", MAX_ERRORS);
+        exit(-1);
+    }
 }
