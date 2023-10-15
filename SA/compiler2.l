@@ -1,27 +1,17 @@
-%{
-#define FLEX_DEBUG                  0
-#define FLEX_SHOW_TOKENS            1
-#define FLEX_SHOW_COMMENTS          1
-#define FLEX_SHOW_NUMERIC           1
-#define FLEX_SHOW_STRINGS           1
-#define MAX_ERRORS                  0
-#include "syntax.tab.h"
+#include "settings.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
+#include "syntax.tab.h"
 
 int lineno=1; // Program's line number
 int line_init=-1; // For multiline comments & strings
-int error_count = 0; 
                      
 char str_buf[256];    
 char* str_buf_ptr;
-
-int yylval;
-
-void yyerror(char *message, int type);    
+   
 void token_print(int token_id);
 void NPRINT(int token_id, int base);
 void RPRINT(int token_id, int base);
@@ -29,10 +19,9 @@ void CPRINT();
 
 int HexToInt(char* str);
 int BinToInt(char* str);
-int DecToInt(char* str);
-float BinToFloat(char* str);
-float HexToFloat(char* str);
-float DecToFloat(char* str);
+float BinToReal(char* str);
+float HexToReal(char* str);
+extern void yyerror(const char *message, int type);    
 %}
 
 /* Read only 1 File */
@@ -105,15 +94,15 @@ C(AD*|D+)R                                                       { token_print(T
 
  /* Real Constants */
  /* REAL HEX CONSTANT */
-(0H)([1-9A-F]{HEXDIGIT}*)?\.(0*[1-9A-F]+{HEXDIGIT}*|0)   { RPRINT(T_RCONST, 16); yylval.floatval = HexToFloat(yytext); return T_RCONST; }
+(0H)([1-9A-F]{HEXDIGIT}*)?\.(0*[1-9A-F]+{HEXDIGIT}*|0)   { RPRINT(T_RCONST, 16); yylval.realval = HexToReal(yytext); return T_RCONST; }
 
  /* REAL BIN CONSTANT */
-(0B)(1{BINDIGIT}*)?\.(0*1+{BINDIGIT}*|0)                 { RPRINT(T_RCONST, 2); yylval.floatval = BinToFloat(yytext); return T_RCONST; }
+(0B)(1{BINDIGIT}*)?\.(0*1+{BINDIGIT}*|0)                 { RPRINT(T_RCONST, 2); yylval.realval = BinToReal(yytext); return T_RCONST; }
                                                             
  /* REAL DECIMAL CONSTANT */
-(0|{DECDIGIT})?(\.)(0*[1-9]+{DIGIT}*|0){EXPONENT}        { RPRINT(T_RCONST, 10); yylval.floatval = atof(yytext); return T_RCONST; }
-(0|{DECDIGIT})?(\.)(0*[1-9]+{DIGIT}*|0)                  { RPRINT(T_RCONST, 10); yylval.floatval = atof(yytext); return T_RCONST; }
-(0|{DECDIGIT}){EXPONENT}                                 { RPRINT(T_RCONST, 10); yylval.floatval = atof(yytext); return T_RCONST; }
+(0|{DECDIGIT})?(\.)(0*[1-9]+{DIGIT}*|0){EXPONENT}        { RPRINT(T_RCONST, 10); yylval.realval = atof(yytext); return T_RCONST; }
+(0|{DECDIGIT})?(\.)(0*[1-9]+{DIGIT}*|0)                  { RPRINT(T_RCONST, 10); yylval.realval = atof(yytext); return T_RCONST; }
+(0|{DECDIGIT}){EXPONENT}                                 { RPRINT(T_RCONST, 10); yylval.realval = atof(yytext); return T_RCONST; }
 
 
 
@@ -130,22 +119,22 @@ C(AD*|D+)R                                                       { token_print(T
 
 
 
- /* Logical Constants */
+   /*
 ".TRUE."                                              { token_print(T_LCONST); yylval.boolval = ; return T_LCONST; }
 ".FALSE."                                             { token_print(T_LCONST); yylval.boolval = ; return T_LCONST; }
-
+    */
 
  /* Character Constants */
  /* Να τσεκαρω το προγραμμα στο github για το yylval του CCONST */
-\'\\n\'                                                 { token_print(T_CCONST); return T_CCONST; }
-\'\\f\'                                                 { token_print(T_CCONST); return T_CCONST; }
-\'\\t\'                                                 { token_print(T_CCONST); return T_CCONST; }
-\'\\r\'                                                 { token_print(T_CCONST); return T_CCONST; }
-\'\\b\'                                                 { token_print(T_CCONST); return T_CCONST; }
-\'\\v\'                                                 { token_print(T_CCONST); return T_CCONST; }   
+\'\\n\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
+\'\\f\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
+\'\\t\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
+\'\\r\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
+\'\\b\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
+\'\\v\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }   
     
-\'{ASCII}\'                                             { token_print(T_CCONST); return T_CCONST; }
-\'{ALPHANUM}\'                                          { token_print(T_CCONST); return T_CCONST; }
+\'{ASCII}\'                                             { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
+\'{ALPHANUM}\'                                          { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
 
                         
 
@@ -188,8 +177,9 @@ C(AD*|D+)R                                                       { token_print(T
  /* Strings */
 \"                                                {BEGIN(STRING); str_buf_ptr = str_buf;} /* we enter the string */
 <STRING>\"                                        {BEGIN(INITIAL); *str_buf_ptr = '\0';
+                                                      yylval.strval = strdup(str_buf);
                                                       if(FLEX_DEBUG && FLEX_SHOW_STRINGS)
-                                                            printf("STRING FOUND: %s | TOKEN NUMBER: %d | LINE: %d\n", str_buf, T_STRING, lineno); yylval.strval = strdup(str_buf);
+                                                            printf("STRING FOUND: %s | TOKEN NUMBER: %d | LINE: %d\n", str_buf, T_STRING, lineno);
                                                         return T_STRING;} /* we exit the string */
 <STRING>\n                                        {yyerror("Illegal input in string", 1); return 0;}
 <STRING>\\n                                       {*str_buf_ptr++ = '\n';}
@@ -239,8 +229,8 @@ void NPRINT(int token_id, int base){
 void RPRINT(int token_id, int base){
     if(FLEX_DEBUG && FLEX_SHOW_NUMERIC){
         float number;
-        if(base == 2) number = BinToFloat(yytext);
-        else if(base == 16) number = HexToFloat(yytext);
+        if(base == 2) number = BinToReal(yytext);
+        else if(base == 16) number = HexToReal(yytext);
         else number = atof(yytext);
         printf("REAL FOUND: %lf (%s) | FROM BASE: %d | TOKEN NUMBER: %d | LINE: %d\n", number, yytext, base, token_id, lineno);
     }
@@ -261,7 +251,7 @@ int BinToInt(char *str){
     return (int) strtol(&str[2], NULL, 2);
 }
 
-float BinToFloat(char* str){
+float BinToReal(char* str){
     float number = 0.0;
     int i,length_real;
     char *character;
@@ -275,7 +265,7 @@ float BinToFloat(char* str){
 }
 
 
-float HexToFloat(char*str){
+float HexToReal(char*str){
     float number = 0.0;
     int i,length_real;
     char *character;
@@ -289,23 +279,4 @@ float HexToFloat(char*str){
 			number += (character[i] + 10 - 'A') * (1/pow(16,i)); /** TODO: CASE SENSITIVE **/
 	}
     return number;
-}
-
-void yyerror(char *message, int type)
-{
-    error_count++;
-    
-    if(type==0){
-		printf("-> ERROR at line %d caused by %s: %s\n", lineno, yytext, message);
-    }else if(type==1){
-		*str_buf_ptr = '\0'; // String or Comment Error. Cleanup old chars stored in buffer.
-		printf("-> ERROR at line %d near \"%s\": %s\n", lineno, str_buf, message);
-	}
-    if(MAX_ERRORS <= 0) return;
-    if(error_count == MAX_ERRORS){
-        printf("Max errors detected\n");
-        exit(-1);
-    }
-
-    yyless(1); /* Panic Method */
 }
