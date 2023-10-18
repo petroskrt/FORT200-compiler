@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 #include "syntax.tab.h"
 
 int lineno=1; // Program's line number
@@ -22,7 +23,8 @@ int HexToInt(char* str);
 int BinToInt(char* str);
 float BinToReal(char* str);
 float HexToReal(char* str);
-extern void yyerror(const char *message, int type);    
+extern void yyerror(char const *message);    
+extern int type;
 %}
 
 /* Read only 1 File */
@@ -120,13 +122,12 @@ C(AD*|D+)R                                                       { token_print(T
 
 
 
-   /*
-".TRUE."                                              { token_print(T_LCONST); yylval.boolval = ; return T_LCONST; }
-".FALSE."                                             { token_print(T_LCONST); yylval.boolval = ; return T_LCONST; }
-    */
+   
+".TRUE."                                              { token_print(T_LCONST); yylval.strval = strdup(yytext); return T_LCONST; }
+".FALSE."                                             { token_print(T_LCONST); yylval.strval = strdup(yytext); return T_LCONST; }
+    
 
  /* Character Constants */
- /* Να τσεκαρω το προγραμμα στο github για το yylval του CCONST */
 \'\\n\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
 \'\\f\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
 \'\\t\'                                                 { token_print(T_CCONST); yylval.strval = strdup(yytext); return T_CCONST; }
@@ -173,7 +174,7 @@ C(AD*|D+)R                                                       { token_print(T
                                                             *str_buf_ptr = '\0';
                                                              CPRINT();
                                                              lineno++;}
-<SINGLE_LINE_COMMENT><<EOF>>                       {yyerror("Untermintated comment", 1); return 0;}
+<SINGLE_LINE_COMMENT><<EOF>>                       {yyerror("Untermintated comment"); return 0;}
                                                             
  /* Strings */
 \"                                                {BEGIN(STRING); str_buf_ptr = str_buf;} /* we enter the string */
@@ -182,7 +183,7 @@ C(AD*|D+)R                                                       { token_print(T
                                                       if(FLEX_DEBUG && FLEX_SHOW_STRINGS)
                                                             printf("STRING FOUND: %s | TOKEN NUMBER: %d | LINE: %d\n", str_buf, T_STRING, lineno);
                                                         return T_STRING;} /* we exit the string */
-<STRING>\n                                        {yyerror("Illegal input in string", 1); return 0;}
+<STRING>\n                                        {yyerror("Illegal input in string"); return 0;}
 <STRING>\\n                                       {*str_buf_ptr++ = '\n';}
 <STRING>\\f                                       {*str_buf_ptr++ = '\f';}
 <STRING>\\t                                       {*str_buf_ptr++ = '\t';}
@@ -195,21 +196,18 @@ C(AD*|D+)R                                                       { token_print(T
 <STRING>\\{ALPHANUM_}?                            {*str_buf_ptr++ = yytext[1];}
 <STRING>[^\\\n\"]+                                {char *yptr = yytext; 
                                                             while ( *yptr ) *str_buf_ptr++ = *yptr++;}
-<STRING><<EOF>>                                   {yyerror("Unterminated string", 1); return 0;}
+<STRING><<EOF>>                                   {yyerror("Unterminated string"); return 0;}
 
 {WHITESPACE}                                            {}
 \n                                                      {lineno++;}
 
  /* Catch the rest */
-.                                                       {yyerror("Unrecognised characters", 0);yyless(1);}
+.                                                       {yyerror("Unrecognised characters");yyless(1);}
  /* ====[END RULES BLOCK]==== */ 
 
 %%
 
 /* ====[USER FUNCTIONS BLOCK]==== */
-
-
-/* ====[END USER FUNCTIONS BLOCK]==== */
 
 void token_print(int token_id){
     if(FLEX_DEBUG && FLEX_SHOW_TOKENS){
@@ -277,7 +275,7 @@ float HexToReal(char*str){
         if(character[i] <= '9')
 			number += (character[i] - '0') * (1/pow(16,i));
 		else
-			number += (character[i] + 10 - 'A') * (1/pow(16,i)); /** TODO: CASE SENSITIVE **/
+			number += (character[i] + 10 - 'A') * (1/pow(16,i));
 	}
     return number;
 }
