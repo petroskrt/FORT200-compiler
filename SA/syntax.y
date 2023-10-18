@@ -73,7 +73,7 @@
 %token <intval>   T_ICONST                   "int const"
 %token <realval>  T_RCONST                   "real const"
 %token <strval>   T_CCONST                   "char const"     /* αν δεν δουλεψει το strval τοτε charval*/
-%token <boolval>  T_LCONST                   "logical const"
+%token <strval>  T_LCONST                   "logical const"
 %token <strval>   T_STRING                   "string const"
 
 
