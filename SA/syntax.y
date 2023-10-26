@@ -1,25 +1,17 @@
 %{
-    #include "settings.h"
     #include <stdio.h>
     #include <stdlib.h>
-    #include <unistd.h>
-    #include <math.h>
-    #include <string.h>
     #include <stdbool.h>
     #include "hashtbl.h"
     
     /*include file yyin which is declared somewhere else*/
     extern FILE *yyin;
-    extern char *yytext;
     extern int yylex();
-    void yyerror(const char *message);   
+    extern void yyerror(const char* err); 
 
     HASHTBL *hashtbl; /* Define hashtable */
     int scope = 0; /* Define initial scope */
-    int error_count = 0;
-    int type = 0;
 
-    extern int lineno,line_init;
     extern char str_buf[256];
     extern char* str_buf_ptr;
 %}
@@ -28,7 +20,7 @@
 %define parse.error verbose
 
 
-/*union to include the CONST types*/
+/*union to include the CONST types*/ 
 %union {
     int intval;
     float realval;
@@ -38,33 +30,33 @@
 } 
 
 /* <strval> -> Μπακάλικη λύση για τα warnings στο terminal τα οποία λύνονται στη σημασιολογική ανάλυση*/
-%token <strval> T_FUNCTION                   "function"
-%token <strval> T_SUBROUTINE                 "subroutine"
-%token <strval> T_END                        "end"
-%token <strval> T_INTEGER                    "int"
-%token <strval> T_REAL                       "real"
-%token <strval> T_LOGICAL                    "logical"
-%token <strval> T_CHARACTER                  "char"
-%token <strval> T_COMPLEX                    "complex"
-%token <strval> T_RECORD                     "record"
-%token <strval> T_ENDREC                     "endrec"
-%token <strval> T_LIST                       "list"
-%token <strval> T_DATA                       "data"
-%token <strval> T_CONTINUE                   "continue"
-%token <strval> T_GOTO                       "goto"
-%token <strval> T_CALL                       "call"
-%token <strval> T_READ                       "read"
-%token <strval> T_WRITE                      "write"
-%token <strval> T_NEW                        "new"
-%token <strval> T_LENGTH                     "length"
-%token <strval> T_IF                         "if"
-%token <strval> T_THEN                       "then"
-%token <strval> T_ELSE                       "else"
-%token <strval> T_ENDIF                      "endif"
-%token <strval> T_DO                         "do"
-%token <strval> T_ENDDO                      "enddo"
-%token <strval> T_STOP                       "stop"
-%token <strval> T_RETURN                     "return"
+%token T_FUNCTION                   "function"
+%token T_SUBROUTINE                 "subroutine"
+%token T_END                        "end"
+%token T_INTEGER                    "int"
+%token T_REAL                       "real"
+%token T_LOGICAL                    "logical"
+%token T_CHARACTER                  "char"
+%token T_COMPLEX                    "complex"
+%token T_RECORD                     "record"
+%token T_ENDREC                     "endrec"
+%token T_LIST                       "list"
+%token T_DATA                       "data"
+%token T_CONTINUE                   "continue"
+%token T_GOTO                       "goto"
+%token T_CALL                       "call"
+%token T_READ                       "read"
+%token T_WRITE                      "write"
+%token T_NEW                        "new"
+%token T_LENGTH                     "length"
+%token T_IF                         "if"
+%token T_THEN                       "then"
+%token T_ELSE                       "else"
+%token T_ENDIF                      "endif"
+%token T_DO                         "do"
+%token T_ENDDO                      "enddo"
+%token T_STOP                       "stop"
+%token T_RETURN                     "return"
 
 
 %token <strval> T_ID                         "id"
@@ -73,33 +65,33 @@
 %token <intval>   T_ICONST                   "int const"
 %token <realval>  T_RCONST                   "real const"
 %token <strval>   T_CCONST                   "char const"     /* αν δεν δουλεψει το strval τοτε charval*/
-%token <strval>  T_LCONST                   "logical const"
+%token <boolval>  T_LCONST                   "logical const"
 %token <strval>   T_STRING                   "string const"
 
 
-%token <strval> T_OROP                       ".OR."
-%token <strval> T_ANDOP                      ".AND."
-%token <strval> T_NOTOP                      ".NOT."
-%token <strval> T_RELOP                      ".GT. or .GE. or .LT. or .LE. or .EQ. or .NE."
-%token <strval> T_ADDOP                      "+ or -"
-%token <strval> T_MULOP                      "*"
-%token <strval> T_DIVOP                      "/"
-%token <strval> T_POWEROP                    "**"
+%token T_OROP                       ".OR."
+%token T_ANDOP                      ".AND."
+%token T_NOTOP                      ".NOT."
+%token T_RELOP                      ".GT. or .GE. or .LT. or .LE. or .EQ. or .NE."
+%token T_ADDOP                      "+ or -"
+%token T_MULOP                      "*"
+%token T_DIVOP                      "/"
+%token T_POWEROP                    "**"
 
 
-%token <strval> T_LISTFUNC                   "listfunc"
+%token T_LISTFUNC                   "listfunc"
 
 
-%token <strval> T_LPAREN                     "("
-%token <strval> T_RPAREN                     ")"
-%token <strval> T_COMMA                      ","
-%token <strval> T_ASSIGN                     "="
-%token <strval> T_DOT                        "."
-%token <strval> T_COLON                      ":"
-%token <strval> T_LBRACK                     "["
-%token <strval> T_RBRACK                     "]"
+%token T_LPAREN                     "("
+%token T_RPAREN                     ")"
+%token T_COMMA                      ","
+%token T_ASSIGN                     "="
+%token T_DOT                        "."
+%token T_COLON                      ":"
+%token T_LBRACK                     "["
+%token T_RBRACK                     "]"
 
-%token <strval> T_EOF               0        "EOF"
+%token T_EOF               0        "EOF"
 
  /* types for the non-terninal(left) side */
 
@@ -110,28 +102,31 @@
 %type <strval> expression listexpression goto_statement labels if_statement subroutine_call io_statement 
 %type <strval> read_list read_item iter_space step write_list write_item compound_statement branch_statement 
 %type <strval> tail loop_statement subprograms subprogram header formal_parameters 
-*/  
+*/
 
 /* precedence */
-%left T_COMMA 
+%left  T_COMMA 
 %right T_ASSIGN
-%left T_OROP
-%left T_ANDOP
-%left T_RELOP
-%left T_ADDOP
-%left T_MULOP T_DIVOP
-%right T_NOTOP T_POWEROP
-%left T_LPAREN T_RPAREN T_LBRACK T_RBRACK T_DOT T_COLON 
+%left  T_OROP
+%left  T_ANDOP
+%left  T_RELOP
+%left  T_ADDOP
+%left  T_MULOP T_DIVOP
+%right T_POWEROP
+%left  T_NOTOP
+%left  T_LPAREN T_RPAREN T_LBRACK T_RBRACK T_DOT T_COLON 
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc T_ELSE
 
+%start program
+
 %%
 
 program:                                body T_END subprograms
-                                        ;
+                                      ;
 body:                                   declarations statements
-                                        ;
+                                      ;
 declarations:                           declarations type vars
                                       | declarations T_RECORD fields T_ENDREC vars
                                       | declarations T_DATA vals
@@ -167,7 +162,7 @@ vals:                                   vals T_COMMA T_ID value_list            
                                       ;
 
 value_list:                             T_DIVOP values T_DIVOP
-                                        ;
+                                      ;
 values:                                 values T_COMMA value
                                       | value
                                       ;
@@ -186,7 +181,7 @@ simple_constant:                        T_ICONST
                                       | T_CCONST
                                       ;
 complex_constant:                       T_LPAREN T_RCONST T_COLON sign T_RCONST T_RPAREN
-                                        ;
+                                      ;
 statements:                             statements labeled_statement
                                       | labeled_statement
                                       ;
@@ -194,7 +189,7 @@ labeled_statement:                      label statement
                                       | statement
                                       ;
 label:                                  T_ICONST
-                                        ;
+                                      ;
 statement:                              simple_statement
                                       | compound_statement
                                       ;
@@ -235,8 +230,8 @@ expression:                             expression T_OROP expression
                                       | T_LPAREN expression T_COLON expression T_RPAREN
                                       | listexpression
                                       ;
-listexpression:                         T_LBRACK expressions T_RBRACK                                          { scope++; }          { hashtbl_get(hashtbl, scope); scope--; }
-                                      | T_LBRACK T_RBRACK                                                      { scope++; }          { hashtbl_get(hashtbl, scope); scope--; } 
+listexpression:                         T_LBRACK expressions T_RBRACK                                          
+                                      | T_LBRACK T_RBRACK                                                       
                                       ;
 goto_statement:                         T_GOTO label
                                       | T_GOTO T_ID T_COMMA T_LPAREN labels T_RPAREN                            { hashtbl_insert(hashtbl, $2, NULL, scope); }
@@ -244,11 +239,11 @@ goto_statement:                         T_GOTO label
 labels:                                 labels T_COMMA label
                                       | label
                                       ;
-if_statement:                           T_IF T_LPAREN expression T_RPAREN label T_COMMA label T_COMMA label     { scope++; }
-                                      | T_IF T_LPAREN expression T_RPAREN simple_statement                      { scope++; }        
+if_statement:                           T_IF T_LPAREN expression T_RPAREN label T_COMMA label T_COMMA label                           { scope++; }
+                                      | T_IF T_LPAREN expression T_RPAREN simple_statement                                            { scope++; }                
                                       ;
 subroutine_call:                        T_CALL variable
-                                        ;
+                                      ;
 io_statement:                           T_READ read_list
                                       | T_WRITE write_list
                                       ;
@@ -259,7 +254,7 @@ read_item:                              variable
                                       | T_LPAREN read_list T_COMMA T_ID T_ASSIGN iter_space T_RPAREN            { hashtbl_insert(hashtbl, $4, NULL, scope); }
                                       ;
 iter_space:                             expression T_COMMA expression step
-                                        ;
+                                      ;
 step:                                   T_COMMA expression
                                       | %empty                                                                            { }
                                       ;
@@ -273,22 +268,22 @@ write_item:                             expression
 compound_statement:                     branch_statement
                                       | loop_statement
                                       ;
-branch_statement:                       T_IF T_LPAREN expression T_RPAREN T_THEN body tail
-                                        ;
-tail:                                   T_ELSE body T_ENDIF                                                     { scope++; }
+branch_statement:                       T_IF T_LPAREN expression T_RPAREN T_THEN body tail                               { scope++; }
+                                      ;
+tail:                                   T_ELSE { scope++; } body T_ENDIF                                                             { hashtbl_get(hashtbl, scope); scope--; }
                                       | T_ENDIF  %prec   LOWER_THAN_ELSE                                                             { hashtbl_get(hashtbl, scope); scope--; }
                                       ; 
-loop_statement:                         T_DO T_ID T_ASSIGN iter_space body T_ENDDO                              { hashtbl_insert(hashtbl, $2, NULL, scope); scope++;}     { hashtbl_get(hashtbl, scope); scope--; }
-                                        ;
+loop_statement:                         T_DO {scope++;} T_ID T_ASSIGN iter_space body T_ENDDO                                      { hashtbl_insert(hashtbl, $3, NULL, scope);}     { hashtbl_get(hashtbl, scope); scope--; }
+                                      ;
 subprograms:                            subprograms subprogram
                                       | %empty                                                                  { }
                                       ;
 subprogram:                             header body T_END                                                       { hashtbl_get(hashtbl, scope); scope--; } /*Εδώ κλείνει το scope*/
-                                        ;
-header:                                 type T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN                { hashtbl_insert(hashtbl, $3, NULL, scope); { scope++; } }  /*Εδώ ανοίγει το scope*/
-                                      | T_LIST T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN              { hashtbl_insert(hashtbl, $3, NULL, scope); } 
-                                      | T_SUBROUTINE T_ID T_LPAREN formal_parameters T_RPAREN                   { hashtbl_insert(hashtbl, $2, NULL, scope); }
-                                      | T_SUBROUTINE T_ID                                                       { hashtbl_insert(hashtbl, $2, NULL, scope); }
+                                      ;
+header:                                 type T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN                { hashtbl_insert(hashtbl, $3, NULL, scope); } { scope++; } /*Εδώ ανοίγει το scope*/
+                                      | T_LIST T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN              { scope++; } { hashtbl_insert(hashtbl, $3, NULL, scope); } 
+                                      | T_SUBROUTINE T_ID T_LPAREN formal_parameters T_RPAREN                   { scope++; } { hashtbl_insert(hashtbl, $2, NULL, scope); }
+                                      | T_SUBROUTINE T_ID                                                       { scope++; } { hashtbl_insert(hashtbl, $2, NULL, scope); }
                                       | T_LIST error T_ID T_LPAREN formal_parameters T_RPAREN                   { yyerror("Wrong use of header"); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
                                       | error T_FUNCTION T_ID T_LPAREN formal_parameters T_RPAREN               { yyerror("Wrong use of header"); yyerrok;}    { hashtbl_insert(hashtbl, $3, NULL, scope); }
                                       | T_LIST T_FUNCTION error T_LPAREN formal_parameters T_RPAREN             { yyerror("Wrong use of header"); yyerrok;}    
@@ -304,7 +299,7 @@ formal_parameters:                      type vars T_COMMA formal_parameters
 int main(int argc, char *argv[]){
   int token;
 
-  if (!(hashtbl = hashtbl_create(10,NULL))){
+  if (!(hashtbl = hashtbl_create(10, NULL))){
     puts("Error, failed to initialize hashtable");
     exit(EXIT_FAILURE);
   }
@@ -324,22 +319,4 @@ int main(int argc, char *argv[]){
     fclose(yyin);
     hashtbl_destroy(hashtbl);
     return 0;
-}
-
-void yyerror(const char *message)
-{
-    error_count++;
-    
-    if(type==0){
-		printf("-> ERROR at line %d caused by %s: %s\n", lineno, yytext, message);
-    }else if(type==1){
-		*str_buf_ptr = '\0'; // String or Comment Error. Cleanup old chars stored in buffer.
-		printf("-> ERROR at line %d near \"%s\": %s\n", lineno, str_buf, message);
-	}
-    type=0;
-    if(MAX_ERRORS <= 0) return;
-    if(error_count == MAX_ERRORS){
-        printf("Max errors (%d) detected\n", MAX_ERRORS);
-        exit(-1);
-    }
 }
